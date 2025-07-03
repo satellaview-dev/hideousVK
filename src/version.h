@@ -105,9 +105,9 @@ const char *GetVersionString();
 #define VR3D_ENABLED
 
 // More stuff that needs to be different for derivatives.
-#define GAMENAME "VKDoom"
-#define WGAMENAME L"VKDoom"
-#define GAMENAMELOWERCASE "vkdoom"
+#define GAMENAME "Hideous Destructor"
+#define WGAMENAME L"Hideous Destructor"
+#define GAMENAMELOWERCASE "hdest"
 #define TOOLNAMELOWERCASE "vktool"
 #define QUERYIWADDEFAULT true
 //#define FORUM_URL "http://forum.zdoom.org/"
@@ -121,7 +121,7 @@ const char *GetVersionString();
 #define GAME_DIR ".config/" GAMENAMELOWERCASE
 #endif
 
-#define DEFAULT_DISCORD_APP_ID "1303107445471838258"
+#define DEFAULT_DISCORD_APP_ID "1335792375556997131"
 
 const int SAVEPICWIDTH = 216;
 const int SAVEPICHEIGHT = 162;
