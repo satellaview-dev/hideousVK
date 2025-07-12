@@ -92,16 +92,16 @@ jobs:
         cd build
         mkdir package
         if [[ "${{ runner.os }}" == 'Windows' ]]; then
-          cp -r ${{ matrix.config.build_type }}/vkdoom.exe ${{ matrix.config.build_type }}/vktool.exe ${{ matrix.config.build_type }}/*.pk3 ${{ matrix.config.build_type }}/fm_banks ${{ matrix.config.build_type }}/soundfonts package
+          cp -r ${{ matrix.config.build_type }}/hideousVK.exe ${{ matrix.config.build_type }}/vktool.exe ${{ matrix.config.build_type }}/*.pk3 ${{ matrix.config.build_type }}/fm_banks ${{ matrix.config.build_type }}/soundfonts package
           cp ../bin/licenses.zip ../bin/windows/libsndfile/64bit/libsndfile-1.dll ../bin/windows/openal/64bit/openal32.dll ../bin/windows/zmusic/64bit/zmusic.dll package
-          cp ${{ matrix.config.build_type }}/vkdoom-stripped.pdb package/vkdoom.pdb
-          cp ${{ matrix.config.build_type }}/vkdoom-stripped.pdb package/vktool.pdb
+          cp ${{ matrix.config.build_type }}/hideousVK-stripped.pdb package/hideousVK.pdb
+          cp ${{ matrix.config.build_type }}/hideousVK-stripped.pdb package/vktool.pdb
         elif [[ "${{ runner.os }}" == 'macOS' ]]; then
-          cp -r vkdoom.app package
+          cp -r hideousVK.app package
           cp -r vktool package
         elif [[ "${{ runner.os }}" == 'Linux' ]]; then
-          cp vkdoom vktool *.pk3 package
-          strip package/vkdoom
+          cp hideousVK vktool *.pk3 package
+          strip package/hideousVK
           strip package/vktool
         fi
 
@@ -130,20 +130,20 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: Visual Studio 2022 RelWithDebInfo
-        path: build/vkdoom-windows-prerelease
+        path: build/hideousVK-windows-prerelease
 
     - name: Download Linux artifact
       uses: actions/download-artifact@v4
       with:
         name: Linux GCC 12 RelWithDebInfo
-        path: build/vkdoom-linux-prerelease
+        path: build/hideousVK-linux-prerelease
 
     - name: Zip artifacts
       shell: bash
       run: |
         cd build
-        zip -r vkdoom-windows-prerelease.zip vkdoom-windows-prerelease
-        zip -r vkdoom-linux-prerelease.zip vkdoom-linux-prerelease
+        zip -r hideousVK-windows-prerelease.zip hideousVK-windows-prerelease
+        zip -r hideousVK-linux-prerelease.zip hideousVK-linux-prerelease
 
     - name: Update nightly release
       uses: pyTooling/Actions/releaser@r0
@@ -151,5 +151,5 @@ jobs:
         tag: nightly
         rm: true
         token: ${{ secrets.GITHUB_TOKEN }}
-        files: build/vkdoom-windows-prerelease.zip build/vkdoom-linux-prerelease.zip
+        files: build/hideousVK-windows-prerelease.zip build/hideousVK-linux-prerelease.zip
 
