@@ -48,6 +48,8 @@ vec3 ProcessLight(const DynLightInfo light, vec3 albedo, float metallic, float r
 {
 	vec3 L = normalize(light.pos.xyz - pixelpos.xyz);
 	vec3 H = normalize(V + L);
+
+	const float brightnessScale = 2.5; // For making non-PBR and PBR lights roughly the same intensity
 	
 	float attenuation = distanceAttenuation(distance(light.pos.xyz, pixelpos.xyz), light.radius, light.strength, light.linearity);
 	if ((light.flags & LIGHTINFO_SPOT) != 0)
@@ -69,7 +71,7 @@ vec3 ProcessLight(const DynLightInfo light, vec3 albedo, float metallic, float r
 			attenuation *= shadowAttenuation(light.pos.xyz, light.shadowIndex, light.softShadowRadius, light.flags);
 		}
 		
-		vec3 radiance = light.color.rgb * attenuation;
+		vec3 radiance = light.color.rgb * attenuation * brightnessScale;
 		
 		// cook-torrance brdf
 		float NDF = DistributionGGX(N, H, roughness);
@@ -151,13 +153,13 @@ vec3 ProcessMaterialLight(Material material, vec3 ambientLight)
 
 	const float environmentScaleFactor = 1.0;
 
-	vec3 irradiance = texture(IrradianceMap, vec4(N, uLightProbeIndex)).rgb * environmentScaleFactor;
+	vec3 irradiance = texture(cubeTextures[uLightProbeIndex], N).rgb * environmentScaleFactor;
 	vec3 diffuse = irradiance * albedo;
 
 	kD *= 1.0 - metallic;
 	const float MAX_REFLECTION_LOD = 4.0;
 	vec3 R = reflect(-V, N); 
-	vec3 prefilteredColor = textureLod(PrefilterMap, vec4(R, uLightProbeIndex), roughness * MAX_REFLECTION_LOD).rgb * environmentScaleFactor;
+	vec3 prefilteredColor = textureLod(cubeTextures[uLightProbeIndex + 1], R, roughness * MAX_REFLECTION_LOD).rgb * environmentScaleFactor;
 	vec2 envBRDF = texture(textures[BrdfLUT], vec2(clamp(dot(N, V), 0.0, 1.0), roughness)).rg;
 	vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
 

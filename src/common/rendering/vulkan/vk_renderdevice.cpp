@@ -406,17 +406,33 @@ void VulkanRenderDevice::RenderTextureView(FCanvasTexture* tex, std::function<vo
 	tex->SetUpdated(true);
 }
 
-void VulkanRenderDevice::RenderEnvironmentMap(std::function<void(IntRect& bounds, int side)> renderFunc, TArrayView<uint16_t>& irradianceMap, TArrayView<uint16_t>& prefilterMap)
+void VulkanRenderDevice::ResetLightProbes()
 {
-	mLightprober->RenderEnvironmentMap(std::move(renderFunc));
-	mLightprober->GenerateIrradianceMap(irradianceMap);
-	mLightprober->GeneratePrefilterMap(prefilterMap);
+	mTextureManager->ResetLightProbes();
 }
 
-void VulkanRenderDevice::UploadEnvironmentMaps(int cubemapCount, const TArray<uint16_t>& irradianceMaps, const TArray<uint16_t>& prefilterMaps)
+void VulkanRenderDevice::RenderLightProbe(int probeIndex, std::function<void(IntRect& bounds, int side)> renderFunc)
 {
-	mTextureManager->CreateIrradiancemap(32, 6 * cubemapCount, irradianceMaps);
-	mTextureManager->CreatePrefiltermap(128, 6 * cubemapCount, prefilterMaps);
+	mLightprober->RenderEnvironmentMap(std::move(renderFunc));
+	mLightprober->GenerateIrradianceMap(probeIndex);
+	mLightprober->GeneratePrefilterMap(probeIndex);
+}
+
+void VulkanRenderDevice::EndLightProbePass()
+{
+	mLightprober->EndLightProbePass();
+}
+
+void VulkanRenderDevice::DownloadLightProbes(int probeCount, TArrayView<uint16_t> irradianceMaps, TArrayView<uint16_t> prefilterMaps)
+{
+	mTextureManager->DownloadIrradiancemap(probeCount, irradianceMaps);
+	mTextureManager->DownloadPrefiltermap(probeCount, prefilterMaps);
+}
+
+void VulkanRenderDevice::UploadLightProbes(int probeCount, const TArray<uint16_t>& irradianceMaps, const TArray<uint16_t>& prefilterMaps)
+{
+	mTextureManager->UploadIrradiancemap(probeCount, irradianceMaps);
+	mTextureManager->UploadPrefiltermap(probeCount, prefilterMaps);
 }
 
 void VulkanRenderDevice::PostProcessScene(bool swscene, int fixedcm, float flash, bool palettePostprocess, const std::function<void()> &afterBloomDrawEndScene2D)
@@ -638,7 +654,7 @@ void VulkanRenderDevice::BeginFrame()
 	SetViewportRects(nullptr);
 	mCommands->BeginFrame();
 	mLevelMesh->BeginFrame();
-	mTextureManager->BeginFrame();
+	mTextureManager->BeginFrame(levelMesh->Lightmap.TextureSize, levelMesh->Lightmap.TextureCount);
 	mScreenBuffers->BeginFrame(screen->mScreenViewport.width, screen->mScreenViewport.height, screen->mSceneViewport.width, screen->mSceneViewport.height);
 	mSaveBuffers->BeginFrame(SAVEPICWIDTH, SAVEPICHEIGHT, SAVEPICWIDTH, SAVEPICHEIGHT);
 	mRenderState->BeginFrame();
