@@ -130,7 +130,7 @@ IF( NOT CMAKE_BUILD_TYPE )
 ENDIF()
 
 set( ZDOOM_OUTPUT_DIR ${CMAKE_BINARY_DIR} CACHE PATH "Directory where zdoom.pk3 and the executable will be created." )
-set( ZDOOM_EXE_NAME "vkdoom" CACHE FILEPATH "Name of the game executable to create" )
+set( ZDOOM_EXE_NAME "hideousVK" CACHE FILEPATH "Name of the game executable to create" )
 set( ZTOOL_EXE_NAME "vktool" CACHE FILEPATH "Name of the tool executable to create" )
 if( MSVC )
 	# Allow the user to use ZDOOM_OUTPUT_DIR as a single release point.
