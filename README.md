@@ -1,5 +1,7 @@
-## Welcome to VKDoom!
+## Welcome to HideousVK!
+I stand on the shoulders of giants.
 
+HideousVK is a fork of VKDoom aiming to add specific engine-sided "little things" for the mod **[Hideous Destructor](https://codeberg.org/mc776/HideousDestructor)**. At the moment, not much has been changed, and there is no functional difference to VKDoom. 
 VKDoom is a source port based on the DOOM engine with a focus on Vulkan and modern computers.
 
 Please see license files for individual contributor licenses.
