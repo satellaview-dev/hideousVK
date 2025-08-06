@@ -18,17 +18,6 @@ jobs:
           os: windows-2022
           build_type: Debug
 
-        - name: macOS
-          os: macos-14
-          deps_cmdline: brew install libvpx
-          build_type: Release
-
-        - name: macOS
-          os: macos-14
-          extra_options: -G Xcode -DDYN_OPENAL=OFF
-          deps_cmdline: brew install libvpx
-          build_type: Debug
-
         - name: Linux GCC 9
           os: ubuntu-22.04
           extra_options: -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
@@ -63,8 +52,6 @@ jobs:
           eval ${{ matrix.config.deps_cmdline }}
         fi
         mkdir build
-        if [[ "${{ runner.os }}" == 'macOS' ]]; then
-          export ZMUSIC_PACKAGE=zmusic-1.1.14-macos-arm.tar.xz
         elif [[ "${{ runner.os }}" == 'Linux' ]]; then
           export ZMUSIC_PACKAGE=zmusic-1.1.14-linux.tar.xz
         fi
@@ -96,9 +83,6 @@ jobs:
           cp ../bin/licenses.zip ../bin/windows/libsndfile/64bit/libsndfile-1.dll ../bin/windows/openal/64bit/openal32.dll ../bin/windows/zmusic/64bit/zmusic.dll package
           cp ${{ matrix.config.build_type }}/hideousVK-stripped.pdb package/hideousVK.pdb
           cp ${{ matrix.config.build_type }}/hideousVK-stripped.pdb package/vktool.pdb
-        elif [[ "${{ runner.os }}" == 'macOS' ]]; then
-          cp -r hideousVK.app package
-          cp -r vktool package
         elif [[ "${{ runner.os }}" == 'Linux' ]]; then
           cp hideousVK vktool *.pk3 zmusic/lib/libzmusic.so package
           strip package/hideousVK
