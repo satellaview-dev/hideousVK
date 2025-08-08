@@ -267,6 +267,11 @@ FString &FString::operator = (const char *copyStr)
 	return *this;
 }
 
+TArrayView<uint8_t> FString::GetTArrayView()
+{
+	return TArrayView((uint8_t*)Chars, Len() + 1);
+}
+
 void FString::Format (const char *fmt, ...)
 {
 	va_list arglist;
@@ -1033,29 +1038,30 @@ void FString::MergeChars (const char *charset, char newchar)
 	UnlockBuffer();
 }
 
-void FString::Substitute (const FString &oldstr, const FString &newstr)
+bool FString::Substitute (const FString &oldstr, const FString &newstr)
 {
 	return Substitute (oldstr.Chars, newstr.Chars, oldstr.Len(), newstr.Len());
 }
 
-void FString::Substitute (const char *oldstr, const FString &newstr)
+bool FString::Substitute (const char *oldstr, const FString &newstr)
 {
 	return Substitute (oldstr, newstr.Chars, strlen(oldstr), newstr.Len());
 }
 
-void FString::Substitute (const FString &oldstr, const char *newstr)
+bool FString::Substitute (const FString &oldstr, const char *newstr)
 {
 	return Substitute (oldstr.Chars, newstr, oldstr.Len(), strlen(newstr));
 }
 
-void FString::Substitute (const char *oldstr, const char *newstr)
+bool FString::Substitute (const char *oldstr, const char *newstr)
 {
 	return Substitute (oldstr, newstr, strlen(oldstr), strlen(newstr));
 }
 
-void FString::Substitute (const char *oldstr, const char *newstr, size_t oldstrlen, size_t newstrlen)
+bool FString::Substitute (const char *oldstr, const char *newstr, size_t oldstrlen, size_t newstrlen)
 {
-	if (oldstr == nullptr || newstr == nullptr || *oldstr == 0) return;
+	if (oldstr == nullptr || newstr == nullptr || *oldstr == 0) return false;
+	bool found = false;
 	LockBuffer();
 	for (size_t checkpt = 0; checkpt < Len(); )
 	{
@@ -1063,6 +1069,7 @@ void FString::Substitute (const char *oldstr, const char *newstr, size_t oldstrl
 		size_t len = Len();
 		if (match != NULL)
 		{
+			found = true;
 			size_t matchpt = match - Chars;
 			if (oldstrlen != newstrlen)
 			{
@@ -1078,6 +1085,7 @@ void FString::Substitute (const char *oldstr, const char *newstr, size_t oldstrl
 		}
 	}
 	UnlockBuffer();
+	return found;
 }
 
 bool FString::IsInt () const
@@ -1293,8 +1301,12 @@ void FString::Split(TArray<FString>& tokens, const char *delimiter, EmptyTokenTy
 }
 
 #ifdef _WIN32
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 
 // Convert from and to Windows wide strings so that we can interface with the Unicode version of the Windows API.

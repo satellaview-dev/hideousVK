@@ -345,7 +345,7 @@ public:
 	bool stack;
 	bool ceiling;
 	uint8_t renderflags;
-    uint8_t hacktype;
+	uint8_t hacktype;
 	int iboindex;
 	//int vboheight;
 
@@ -354,7 +354,7 @@ public:
 	F3DFloor* controlsector;
 
 	void CreateSkyboxVertices(FFlatVertex *buffer);
-	void SetupLights(HWFlatDispatcher *di, FRenderState& state, FLightNode *head, FDynLightData &lightdata, int portalgroup);
+	void SetupLights(HWFlatDispatcher *di, FRenderState& state, FDynLightData &lightdata, int portalgroup);
 
 	void PutFlat(HWFlatDispatcher *di, bool fog = false);
 	void Process(HWFlatDispatcher *di, FRenderState& state, sector_t * model, int whichplane, bool notexture);
@@ -364,8 +364,8 @@ public:
 	void DrawSubsectors(HWFlatDispatcher *di, FRenderState &state);
 	void DrawFlat(HWFlatDispatcher *di, FRenderState &state, bool translucent);
     
-    void DrawOtherPlanes(HWDrawInfo *di, FRenderState &state);
-    void DrawFloodPlanes(HWDrawInfo *di, FRenderState &state);
+	void DrawOtherPlanes(HWDrawInfo *di, FRenderState &state);
+	void DrawFloodPlanes(HWDrawInfo *di, FRenderState &state);
 };
 
 //==========================================================================
@@ -466,7 +466,7 @@ struct HWDecal
 struct HWDecalCreateInfo
 {
 	void ProcessDecal(HWDrawInfo* di, FRenderState& state, int dynlightindex) const;
-	int SetupLights(HWDrawInfo* di, FRenderState& state, FDynLightData& lightdata, FLightNode* node) const;
+	int SetupLights(HWDrawInfo* di, FRenderState& state, FDynLightData& lightdata, side_t* side) const;
 
 	DBaseDecal* decal;
 	FVector3 normal;

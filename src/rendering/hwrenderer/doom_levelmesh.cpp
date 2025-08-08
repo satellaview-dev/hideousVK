@@ -296,7 +296,7 @@ DoomLevelMesh::DoomLevelMesh(FLevelLocals& doomMap)
 	// Collect all the models we want to bake into the level mesh
 	if (lm_models)
 	{
-		TThinkerIterator<AActor> it(&doomMap, PClass::FindClass("Actor"), STAT_STATIC, true);
+		TThinkerIterator<AActor> it(&doomMap, PClass::FindClass("Actor"), STAT_STATIC, FThinkerIteratorMode::forceSearch);
 		AActor* thing;
 		while ((thing = it.Next()) != nullptr)
 		{
@@ -650,7 +650,7 @@ void DoomLevelMesh::AddSidesToDrawLists(const TArray<int>& sides, LevelMeshDrawL
 				int dynlightindex = -1;
 				if (di->Level->HasDynamicLights && !di->isFullbrightScene() && decals[0].texture != nullptr && !lm_dynlights)
 				{
-					dynlightindex = decals[0].SetupLights(di, state, lightdata, level.sides[sideIndex].lighthead);
+					dynlightindex = decals[0].SetupLights(di, state, lightdata, &level.sides[sideIndex]);
 				}
 
 				for (const HWDecalCreateInfo& info : decals)
@@ -1046,34 +1046,38 @@ void DoomLevelMesh::UpdateLightShadows(sector_t* sector)
 {
 	for (FSection& section : level.sections.SectionsForSector(sector))
 	{
-		int lightcount = 0;
-		FLightNode* cur = section.lighthead;
-		while (cur)
+		auto flatLightList = level.lightlists.flat_dlist.SSize() > section.Index() ? &level.lightlists.flat_dlist[section.Index()] : nullptr;
+		if (flatLightList)
 		{
-			FDynamicLight* light = cur->lightsource;
-			if (light && light->IsActive() && (light->Trace() || lm_dynlights))
+			TMap<FDynamicLight*, std::unique_ptr<FLightNode>>::Iterator it(*flatLightList);
+			TMap<FDynamicLight*, std::unique_ptr<FLightNode>>::Pair* pair;
+			while (it.NextPair(pair))
 			{
-				UpdateLightShadows(light);
+				auto node = pair->Value.get();
+				FDynamicLight* light = node->lightsource;
+				if (light && light->IsActive() && (light->Trace() || lm_dynlights))
+				{
+					UpdateLightShadows(light);
+				}
 			}
-			cur = cur->nextLight;
 		}
 	}
 }
 
 void DoomLevelMesh::UpdateLightShadows(FDynamicLight* light)
 {
-	auto touching_sector = light->touching_sector;
-	while (touching_sector)
+	for (int i = 0; i < light->touchlists.flat_tlist.SSize(); i++)
 	{
-		UpdateFlat(touching_sector->targSection->sector->Index(), SurfaceUpdateType::LightList);
-		touching_sector = touching_sector->nextTarget;
+		auto sec = light->touchlists.flat_tlist[i];
+		if (sec)
+			UpdateFlat(sec->sector->Index(), SurfaceUpdateType::LightList);
 	}
 
-	auto touching_sides = light->touching_sides;
-	while (touching_sides)
+	for (int i = 0; i < light->touchlists.wall_tlist.SSize(); i++)
 	{
-		UpdateSide(touching_sides->targLine->Index(), SurfaceUpdateType::LightList);
-		touching_sides = touching_sides->nextTarget;
+		auto sidedef = light->touchlists.wall_tlist[i];
+		if (sidedef)
+			UpdateSide(sidedef->Index(), SurfaceUpdateType::LightList);
 	}
 }
 
@@ -1182,12 +1186,12 @@ void DoomLevelMesh::UpdateSideLightList(FLevelLocals& doomMap, unsigned int side
 			return;
 
 		FreeLightList(sideBlock.Lights.Start, sideBlock.Lights.Count);
-		sideBlock.Lights = CreateLightList(sub->section->lighthead, sub->sector->PortalGroup);
+		sideBlock.Lights = CreateLightList(sub->section, nullptr, sub->sector->PortalGroup);
 	}
 	else
 	{
 		FreeLightList(sideBlock.Lights.Start, sideBlock.Lights.Count);
-		sideBlock.Lights = CreateLightList(side->lighthead, side->sector->PortalGroup);
+		sideBlock.Lights = CreateLightList(nullptr, side, side->sector->PortalGroup);
 	}
 
 	int surf = Sides[sideIndex].FirstSurface;
@@ -1215,7 +1219,7 @@ void DoomLevelMesh::UpdateFlatLightList(FLevelLocals& doomMap, unsigned int sect
 	sector_t* sector = &doomMap.sectors[sectorIndex];
 	for (FSection& section : doomMap.sections.SectionsForSector(sectorIndex))
 	{
-		Flats[sectorIndex].Lights.Push(CreateLightList(section.lighthead, section.sector->PortalGroup));
+		Flats[sectorIndex].Lights.Push(CreateLightList(&section, nullptr, section.sector->PortalGroup));
 	}
 
 	int surf = Flats[sectorIndex].FirstSurface;
@@ -1309,36 +1313,55 @@ void DoomLevelMesh::UpdateFlat(unsigned int sectorIndex, SurfaceUpdateType updat
 	}
 }
 
-LightListAllocInfo DoomLevelMesh::CreateLightList(FLightNode* node, int portalgroup)
+LightListAllocInfo DoomLevelMesh::CreateLightList(FSection* section, side_t* side, int portalgroup)
 {
+	TMap<FDynamicLight*, std::unique_ptr<FLightNode>>* srcLightList = nullptr;
+	if (section && level.lightlists.flat_dlist.SSize() > section->Index())
+		srcLightList =  &level.lightlists.flat_dlist[section->Index()];
+	else if (side && level.lightlists.wall_dlist.SSize() > side->Index())
+		srcLightList = &level.lightlists.wall_dlist[side->Index()];
+
 	int lightcount = 0;
-	FLightNode* cur = node;
-	while (cur)
+	if (srcLightList)
 	{
-		FDynamicLight* light = cur->lightsource;
-		if (light && light->IsActive() && (light->Trace() || lm_dynlights) && GetLightIndex(light, portalgroup) >= 0)
+		TMap<FDynamicLight*, std::unique_ptr<FLightNode>>::Iterator it(*srcLightList);
+		TMap<FDynamicLight*, std::unique_ptr<FLightNode>>::Pair* pair;
+		while (it.NextPair(pair))
 		{
-			lightcount++;
+			auto node = pair->Value.get();
+			if (!node) continue;
+
+			FDynamicLight* light = node->lightsource;
+			if (light && light->IsActive() && (light->Trace() || lm_dynlights) && GetLightIndex(light, portalgroup) >= 0)
+			{
+				lightcount++;
+			}
 		}
-		cur = cur->nextLight;
 	}
 
 	LightListAllocInfo info = AllocLightList(lightcount);
-	int32_t* lightList = GetLightList(info);
-	int i = 0;
-	cur = node;
-	while (cur)
+
+	if (srcLightList)
 	{
-		FDynamicLight* light = cur->lightsource;
-		if (light && light->IsActive() && (light->Trace() || lm_dynlights))
+		int32_t* lightList = GetLightList(info);
+		int i = 0;
+		TMap<FDynamicLight*, std::unique_ptr<FLightNode>>::Iterator it(*srcLightList);
+		TMap<FDynamicLight*, std::unique_ptr<FLightNode>>::Pair* pair;
+		while (it.NextPair(pair))
 		{
-			int lightindex = GetLightIndex(light, portalgroup);
-			if (lightindex >= 0)
+			auto node = pair->Value.get();
+			if (!node) continue;
+
+			FDynamicLight* light = node->lightsource;
+			if (light && light->IsActive() && (light->Trace() || lm_dynlights))
 			{
-				lightList[i++] = lightindex;
+				int lightindex = GetLightIndex(light, portalgroup);
+				if (lightindex >= 0)
+				{
+					lightList[i++] = lightindex;
+				}
 			}
 		}
-		cur = cur->nextLight;
 	}
 	return info;
 }
@@ -1373,7 +1396,7 @@ void DoomLevelMesh::CreateSide(FLevelLocals& doomMap, unsigned int sideIndex)
 			{
 				if (!lightlistCreated)
 				{
-					sideBlock.Lights = CreateLightList(sub->section->lighthead, sub->sector->PortalGroup);
+					sideBlock.Lights = CreateLightList(sub->section, nullptr, sub->sector->PortalGroup);
 					lightlistCreated = true;
 				}
 
@@ -1388,7 +1411,7 @@ void DoomLevelMesh::CreateSide(FLevelLocals& doomMap, unsigned int sideIndex)
 	}
 	else
 	{
-		sideBlock.Lights = CreateLightList(side->lighthead, side->sector->PortalGroup);
+		sideBlock.Lights = CreateLightList(nullptr, side, side->sector->PortalGroup);
 
 		subsector_t* sub = seg->Subsector;
 		sector_t* front = side->sector;
@@ -1480,7 +1503,7 @@ void DoomLevelMesh::CreateFlat(FLevelLocals& doomMap, unsigned int sectorIndex)
 	int lightlistSection = 0;
 	for (FSection& section : doomMap.sections.SectionsForSector(sectorIndex))
 	{
-		Flats[sectorIndex].Lights.Push(CreateLightList(section.lighthead, section.sector->PortalGroup));
+		Flats[sectorIndex].Lights.Push(CreateLightList(&section, nullptr, section.sector->PortalGroup));
 		const auto& lightlist = Flats[sectorIndex].Lights.Last();
 
 		HWFlatMeshHelper result;

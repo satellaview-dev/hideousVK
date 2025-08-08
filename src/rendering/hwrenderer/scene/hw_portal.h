@@ -13,9 +13,9 @@ class FSkyBox;
 
 struct HWSkyInfo
 {
-	float x_offset[2];
+	float x_offset[3];
 	float y_offset;		// doubleskies don't have a y-offset
-	FGameTexture * texture[2];
+	FGameTexture * texture[3];
 	FTextureID skytexno1;
 	bool mirrored;
 	bool doublesky;
@@ -71,6 +71,7 @@ public:
     {
     }
     virtual ~HWPortal() {}
+	virtual int GetMirrorSide() const { return 0; };
     virtual int ClipSeg(seg_t *seg, const DVector3 &viewpos) { return PClip_Inside; }
     virtual int ClipSubsector(subsector_t *sub) { return PClip_Inside; }
     virtual int ClipPoint(const DVector2 &pos) { return PClip_Inside; }
@@ -148,7 +149,7 @@ public:
 	virtual bool NeedDepthBuffer() { return true; }
 	virtual void DrawContents(HWDrawInfo *di, FRenderState &state)
 	{
-		if (Setup(di, state, (di->Viewpoint.IsAllowedOoB() ? di->rClipper : di->mClipper)))
+		if (Setup(di, state, (di->Viewpoint.bDoOob ? di->rClipper : di->mClipper)))
 		{
 			di->DrawScene(DM_PORTAL, state);
 			Shutdown(di, state);
@@ -304,6 +305,8 @@ protected:
 
 public:
 
+	int GetMirrorSide() const override;
+
 	HWPlaneMirrorPortal(FPortalSceneState *state, secplane_t * pt) : HWScenePortalBase(state)
 	{
 		origin = pt;
@@ -350,7 +353,6 @@ public:
 	}
 
 };
-
 
 struct HWSkyPortal : public HWPortal
 {

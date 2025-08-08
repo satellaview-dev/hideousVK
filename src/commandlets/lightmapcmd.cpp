@@ -3,9 +3,9 @@
 #include "g_levellocals.h"
 #include "d_event.h"
 #include "v_video.h"
+#include "d_net.h"
 
 void G_SetMap(const char* mapname, int mode);
-void D_SingleTick();
 
 LightmapCmdletGroup::LightmapCmdletGroup()
 {
@@ -37,7 +37,8 @@ void LightmapBuildCmdlet::OnCommand(FArgs args)
 		G_SetMap(mapname.GetChars(), 0);
 		for (int i = 0; i < 100; i++)
 		{
-			D_SingleTick();
+			TryRunTics(1);
+
 			if (gameaction == ga_nothing)
 				break;
 		}
@@ -125,7 +126,7 @@ void LightmapDeleteCmdlet::OnCommand(FArgs args)
 		G_SetMap(mapname.GetChars(), 0);
 		for (int i = 0; i < 100; i++)
 		{
-			D_SingleTick();
+			TryRunTics(1);
 			if (gameaction == ga_nothing)
 				break;
 		}

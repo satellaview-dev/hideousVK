@@ -196,17 +196,13 @@ protected:
 
 struct FLightNode
 {
-	FLightNode ** prevTarget;
-	FLightNode * nextTarget;
-	FLightNode ** prevLight;
-	FLightNode * nextLight;
 	FDynamicLight * lightsource;
-	union
-	{
-		side_t * targLine;
-		FSection* targSection;
-		void * targ;
-	};
+};
+
+struct FDynamicLightTouchLists
+{
+	TArray<FSection*> flat_tlist;
+	TArray<side_t*> wall_tlist;
 };
 
 struct FDynamicLight
@@ -265,6 +261,7 @@ struct FDynamicLight
 
 	void Tick();
 	bool UpdateLocation();
+	void AddLightNode(FSection *section, side_t *sidedef);
 	void LinkLight();
 	void UnlinkLight();
 	void ReleaseLight();
@@ -272,6 +269,7 @@ struct FDynamicLight
 private:
 	double DistToSeg(const DVector3 &pos, vertex_t *start, vertex_t *end);
 	void CollectWithinRadius(const DVector3 &pos, FSection *section, float radius);
+	void MarkTilesForUpdate();
 
 public:
 	FCycler m_cycler;
@@ -294,8 +292,7 @@ public:
 	sector_t *Sector;
 	FLevelLocals *Level;
 	TObjPtr<AActor *> target;
-	FLightNode * touching_sides;
-	FLightNode * touching_sector;
+
 	float radius;			// The maximum size the light can be with its current settings.
 	float m_currentRadius;	// The current light size.
 	int m_tickCount;
@@ -329,6 +326,8 @@ public:
 		int index;
 		int portalgroup;
 	} levelmesh[max_levelmesh_entries];
+
+	FDynamicLightTouchLists touchlists;
 };
 
 

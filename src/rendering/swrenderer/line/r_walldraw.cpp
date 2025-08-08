@@ -207,14 +207,23 @@ namespace swrenderer
 		drawerargs.DrawWall(Thread);
 	}
 
-	FLightNode* RenderWallPart::GetLightList()
+	TMap<FDynamicLight*, std::unique_ptr<FLightNode>>* RenderWallPart::GetLightList()
 	{
 		CameraLight* cameraLight = CameraLight::Instance();
 		if ((cameraLight->FixedLightLevel() >= 0) || cameraLight->FixedColormap())
+		{
 			return nullptr; // [SP] Don't draw dynlights if invul/lightamp active
+		}
 		else if (curline && curline->sidedef)
-			return curline->sidedef->lighthead;
-		else
-			return nullptr;
+		{
+			auto Level = curline->Subsector->sector->Level;
+
+			if (Level->lightlists.wall_dlist.SSize() > curline->sidedef->Index())
+			{
+				return &Level->lightlists.wall_dlist[curline->sidedef->Index()];
+			}
+		}
+
+		return nullptr;
 	}
 }
